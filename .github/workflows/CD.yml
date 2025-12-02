@@ -1,0 +1,60 @@
+name: CD
+
+on:
+  # Deploy automatically when CI workflow succeeds
+  workflow_run:
+    workflows: [ "CI" ]
+    types: [ "completed" ]
+
+  # Optional manual trigger (useful for testing)
+  workflow_dispatch:
+
+jobs:
+  deploy-to-kubernetes:
+    # Only run if CI finished successfully, or if manually triggered
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+
+    env:
+      PROD_HOST: 54.210.218.88
+      PROD_USER: ubuntu
+      REMOTE_K8S_DIR: /home/ubuntu/ansible/k8s
+      KUBECONFIG_PATH: /home/ubuntu/.kube/config
+
+    steps:
+      - name: Checkout repository at CI commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PROD_SERVER_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$PROD_HOST" >> ~/.ssh/known_hosts
+
+      - name: Copy Kubernetes manifests to production server
+        run: |
+          scp -o StrictHostKeyChecking=no \
+            k8s/deployment.yaml k8s/service.yaml \
+            ${PROD_USER}@${PROD_HOST}:${REMOTE_K8S_DIR}/
+
+            - name: Deploy to Kubernetes with rolling update
+        run: |
+          ssh -o StrictHostKeyChecking=no ${PROD_USER}@${PROD_HOST} << 'EOF'
+          set -e
+          export KUBECONFIG=/home/ubuntu/.kube/config
+
+          cd /home/ubuntu/ansible/k8s
+
+          # Apply everything in the k8s directory (deployment + service)
+          kubectl apply -f .
+
+          # Wait for the rolling update to finish
+          kubectl rollout status deployment/weather-ml-deployment --timeout=120s
+
+          # Show pods for logging / evidence
+          kubectl get pods -o wide
+          EOF
+
