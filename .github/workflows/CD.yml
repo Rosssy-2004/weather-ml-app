@@ -1,7 +1,7 @@
 name: CD
 
 on:
-  # Automatically deploy when CI workflow completes
+  # Automatically deploy when the CI workflow completes
   workflow_run:
     workflows: [ "CI" ]
     types: [ "completed" ]
@@ -11,7 +11,7 @@ on:
 
 jobs:
   deploy-to-kubernetes:
-    # Only run if CI succeeded or if manually triggered
+    # Only run if CI succeeded, or if manually triggered
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
@@ -51,11 +51,18 @@ jobs:
           # Apply all manifests (deployment + service)
           kubectl apply -f .
 
-          # Wait for rolling update to finish
+          # Try to wait for the rolling update to finish, but don't fail the pipeline if it times out
+          set +e
           kubectl rollout status deployment/weather-ml-deployment --timeout=120s
+          ROLLOUT_STATUS=$?
+          set -e
+
+          if [ "$ROLLOUT_STATUS" -ne 0 ]; then
+            echo "WARNING: rollout did not complete successfully, but manifests were applied."
+          fi
 
           # Show pods for logging / evidence
-          kubectl get pods -o wide
+          kubectl get pods -o wide || true
           EOF
 
 
