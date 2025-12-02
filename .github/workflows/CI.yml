@@ -29,15 +29,15 @@ jobs:
           pip install -r requirements.txt
           pip install pytest
 
-      # (c) Run each test file in separate steps
+      # (c) Run each test file in separate steps, with PYTHONPATH including repo root
       - name: Run unit tests
-        run: pytest tests/unit_test.py
+        run: PYTHONPATH=. pytest tests/unit_test.py
 
       - name: Run integration tests
-        run: pytest tests/integration_test.py
+        run: PYTHONPATH=. pytest tests/integration_test.py
 
       - name: Run smoke tests
-        run: pytest tests/smoke_test.py
+        run: PYTHONPATH=. pytest tests/smoke_test.py
 
       # (d) Log in to Docker Hub
       - name: Log in to Docker Hub
@@ -58,6 +58,3 @@ jobs:
       - name: Push Docker image
         run: docker push "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
 
-
-      - name: Push Docker image
-        run: docker push "${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
