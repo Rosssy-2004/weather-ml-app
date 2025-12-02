@@ -27,6 +27,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install flask
           pip install pytest
 
       # (c) Run each test file in separate steps, with PYTHONPATH including repo root
