@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: weather-ml-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: weather-ml-app
+  template:
+    metadata:
+      labels:
+        app: weather-ml-app
+    spec:
+      containers:
+        - name: weather-ml-app
+          image: rossy1872/weather-ml-app:v1
+          ports:
+            - containerPort: 5000
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: weather-ml-service
+spec:
+  type: NodePort
+  selector:
+    app: weather-ml-app
+  ports:
+    - port: 5000
+      targetPort: 5000
+      nodePort: 30080
