@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: weather-ml-app
-          image: rossy1872/weather-ml-app:v3
+          image: rossy1872/weather-ml-app:v4
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
